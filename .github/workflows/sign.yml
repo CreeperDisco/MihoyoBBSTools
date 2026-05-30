@@ -1,128 +1,157 @@
 name: Mihoyo Sign
 
 on:
-workflow_dispatch:
-schedule:
-# 北京时间09:30
-- cron: '30 1 * * *'
+  workflow_dispatch:
+  schedule:
+    # 北京时间 09:30（UTC+8）
+    - cron: '30 1 * * *'
 
 jobs:
-sign:
-runs-on: ubuntu-latest
+  sign:
+    runs-on: ubuntu-latest
 
-```
-steps:
-  - name: Checkout
-    uses: actions/checkout@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  - name: Setup Python
-    uses: actions/setup-python@v5
-    with:
-      python-version: "3.11"
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-  - name: Install Dependencies
-    run: |
-      python -m pip install --upgrade pip
-      pip install -r requirements.txt
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-  - name: Create config.yaml
-    run: |
-      mkdir -p config
+      - name: Create config.yaml
+        run: |
+          mkdir -p config
 
-      cat > config/config.yaml <<'EOF'
-      enable: true
-      version: 15
-      push: ""
-
-      account:
-        cookie: "__COOKIE__"
-        stuid: ""
-        stoken: "__STOKEN__"
-        mid: ""
-
-      device:
-        name: "Xiaomi MI 6"
-        model: "Mi 6"
-        id: ""
-        fp: ""
-
-      mihoyobbs:
-        enable: false
-
-      games:
-        cn:
+          cat > config/config.yaml <<EOF
           enable: true
-          useragent: "Mozilla/5.0 (Linux; Android 12; Unspecified Device) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/103.0.5060.129 Mobile Safari/537.36"
-          retries: 3
+          version: 15
+          push: ""
 
-          genshin:
-            checkin: true
-            black_list: []
+          account:
+            cookie: "${{ secrets.MYS_COOKIE }}"
+            stuid: ""
+            stoken: "${{ secrets.MYS_STOKEN }}"
+            mid: ""
 
-          honkai2:
-            checkin: false
-            black_list: []
+          device:
+            name: "Xiaomi MI 6"
+            model: "Mi 6"
+            id: ""
+            fp: ""
 
-          honkai3rd:
-            checkin: false
-            black_list: []
+          mihoyobbs:
+            enable: false
 
-          tears_of_themis:
-            checkin: false
-            black_list: []
+          games:
+            cn:
+              enable: true
+              useragent: "Mozilla/5.0 (Linux; Android 12; Unspecified Device) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/103.0.5060.129 Mobile Safari/537.36"
+              retries: 3
 
-          honkai_sr:
-            checkin: false
-            black_list: []
+              genshin:
+                checkin: true
+                black_list: []
 
-          zzz:
-            checkin: false
-            black_list: []
+              honkai2:
+                checkin: false
+                black_list: []
 
-        os:
-          enable: false
+              honkai3rd:
+                checkin: false
+                black_list: []
 
-      cloud_games:
-        cn:
-          enable: false
-        os:
-          enable: false
+              tears_of_themis:
+                checkin: false
+                black_list: []
 
-      competition:
-        enable: false
+              honkai_sr:
+                checkin: false
+                black_list: []
 
-      web_activity:
-        enable: false
-      EOF
+              zzz:
+                checkin: false
+                black_list: []
 
-      sed -i "s|__COOKIE__|${{ secrets.MYS_COOKIE }}|g" config/config.yaml
-      sed -i "s|__STOKEN__|${{ secrets.MYS_STOKEN }}|g" config/config.yaml
+            os:
+              enable: false
 
-  - name: Create push.ini
-    run: |
-      cat > config/push.ini <<EOF
-      [setting]
-      enable=true
-      push_server=smtp
-      error_push_only=false
+          cloud_games:
+            cn:
+              enable: false
+            os:
+              enable: false
 
-      [smtp]
-      mailhost=${{ secrets.SMTP_MAILHOST }}
-      port=${{ secrets.SMTP_PORT }}
-      ssl_enable=${{ secrets.SMTP_SSL }}
-      fromaddr=${{ secrets.SMTP_FROM }}
-      toaddr=${{ secrets.SMTP_TO }}
-      subject=AutoMihoyoBBS
-      username=${{ secrets.SMTP_USER }}
-      password=${{ secrets.SMTP_PASS }}
-      background=true
-      EOF
+          competition:
+            enable: false
 
-  - name: Create logging.ini
-    run: |
-      cp config/logging.ini.example config/logging.ini || true
+          web_activity:
+            enable: false
+          EOF
 
-  - name: Run Sign
-    run: |
-      python main.py
-```
+      - name: Create push.ini
+        run: |
+          cat > config/push.ini <<EOF
+          [setting]
+          enable=true
+          push_server=smtp
+          error_push_only=false
+
+          [smtp]
+          mailhost=${{ secrets.SMTP_MAILHOST }}
+          port=${{ secrets.SMTP_PORT }}
+          ssl_enable=${{ secrets.SMTP_SSL }}
+          fromaddr=${{ secrets.SMTP_FROM }}
+          toaddr=${{ secrets.SMTP_TO }}
+          subject=AutoMihoyoBBS
+          username=${{ secrets.SMTP_USER }}
+          password=${{ secrets.SMTP_PASS }}
+          background=true
+          EOF
+
+      - name: Create logging.ini
+        run: |
+          cat > config/logging.ini <<EOF
+          [loggers]
+          keys=root,AutoMihoyoBBS
+
+          [handlers]
+          keys=fileHandler,consoleHandler
+
+          [formatters]
+          keys=simpleFormatter
+
+          [logger_root]
+          level=DEBUG
+          handlers=fileHandler,consoleHandler
+
+          [logger_AutoMihoyoBBS]
+          level=WARNING
+          qualname=AutoMihoyoBBS
+          handlers=fileHandler,consoleHandler
+
+          [handler_consoleHandler]
+          class=StreamHandler
+          args=(sys.stdout,)
+          level=INFO
+          formatter=simpleFormatter
+
+          [handler_fileHandler]
+          class=FileHandler
+          args=('logging.log','a')
+          level=DEBUG
+          formatter=simpleFormatter
+
+          [formatter_simpleFormatter]
+          format=%(asctime)s - %(name)s - %(levelname)s - %(message)s
+          datefmt=%Y-%m-%dT%H:%M:%S
+          EOF
+
+      - name: Run Sign
+        run: |
+          python main.py
