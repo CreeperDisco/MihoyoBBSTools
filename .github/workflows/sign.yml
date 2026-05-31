@@ -3,8 +3,8 @@ name: Mihoyo Sign
 on:
   workflow_dispatch:
   schedule:
-    # 北京时间 09:30（UTC+8）
-    - cron: '30 1 * * *'
+    # 北京时间 08:15（UTC+8）
+    - cron: '15 0 * * *'
 
 jobs:
   sign:
